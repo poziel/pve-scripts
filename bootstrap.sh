@@ -6,7 +6,7 @@ clear
 USERNAME="admin"
 PASSWORD_FILE="/root/${USERNAME}_password.txt"
 SHARED_NAME="shared.sh"
-SHARED_URL="https://raw.githubusercontent.com/poziel/pve-script/main/$SHARED_NAME"
+SHARED_URL="https://raw.githubusercontent.com/poziel/pve-scripts/refs/heads/main/$SHARED_NAME"
 CURRENT_HOSTNAME=$(hostname)
 COMMON_TOOLS=(curl wget nano vim git unzip htop net-tools gnupg lsb-release ca-certificates software-properties-common ufw vsftpd)
 SSHD_CONFIG="/etc/ssh/sshd_config"
@@ -19,10 +19,9 @@ DID_CONFIGURE_SSH=false
 DID_CONFIGURE_FTP=false
 
 # === Fetch and source shared.sh from GitHub ===
-if [ -f "./shared.sh" ]; then
-  source ./shared.sh
+if [ -f "./$SHARED_NAME" ]; then
+  source "./$SHARED_NAME"
 else
-  SHARED_URL="https://raw.githubusercontent.com/poziel/pve-script/main/shared.sh"
   source <(wget -qO- "$SHARED_URL")
 fi
 
