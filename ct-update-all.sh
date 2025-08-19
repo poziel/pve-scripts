@@ -14,6 +14,12 @@ set -euo pipefail
 SHARED_NAME="shared.sh"
 SHARED_URL="https://raw.githubusercontent.com/poziel/pve-scripts/refs/heads/main/${SHARED_NAME}"
 
+# === Default values when parameters are passed (configurable) ===
+DEFAULT_INCLUDE_ALL=false   # true or false - include stopped containers by default
+DEFAULT_PARALLEL=1          # 1-10 - number of parallel updates by default
+DEFAULT_EXCLUDE=""          # comma-separated CTIDs to exclude by default (e.g., "101,105")
+DEFAULT_DRY_RUN=false       # true or false - dry run mode by default
+
 # shellcheck source=/dev/null
 if [[ -f "./${SHARED_NAME}" ]]; then
   source "./${SHARED_NAME}"
@@ -46,37 +52,66 @@ ASSUME_YES=false
 DRY_RUN=false
 INTERACTIVE=true
 
+# Store original arguments for checking what was explicitly set
+ORIGINAL_ARGS="$*"
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [options]
-  --all                Include stopped CTs (they will be skipped at exec time if not running)
-  --parallel N         Run up to N containers in parallel (default: 1)
-  --exclude LIST       Comma-separated CTIDs to exclude (e.g., 101,105)
-  --yes                No interactive prompt
-  --dry-run            Show what would run without executing
-  --help               Show this help
+  -a, --all            Include stopped CTs (they will be skipped at exec time if not running)
+  -p, --parallel N     Run up to N containers in parallel (default: 1)
+  -e, --exclude LIST   Comma-separated CTIDs to exclude (e.g., 101,105)
+  -y, --yes            No interactive prompt
+  -d, --dry-run        Show what would run without executing
+  -h, --help           Show this help
 
-Interactive mode (when no options provided):
-  The script will prompt you for each option if not specified via command line.
+Behavior:
+  - NO PARAMETERS: Interactive mode - prompts for each option
+  - ANY PARAMETER: Uses defaults for unspecified options (see defaults at top of script)
+
+Current defaults when parameters are used:
+  - Include stopped: $DEFAULT_INCLUDE_ALL
+  - Parallel jobs: $DEFAULT_PARALLEL
+  - Exclude CTIDs: ${DEFAULT_EXCLUDE:-none}
+  - Dry run: $DEFAULT_DRY_RUN
 
 Examples:
-  $(basename "$0")                                    # Interactive mode
-  $(basename "$0") --all --parallel 3                # Update all CTs with 3 parallel jobs
-  $(basename "$0") --exclude 101,105 --yes           # Exclude specific CTs, no prompts
+  $(basename "$0")                  # Interactive mode (asks for each option)
+  $(basename "$0") -y               # Use all defaults, no prompts
+  $(basename "$0") -p 3             # 3 parallel jobs, other defaults apply
+  $(basename "$0") -e 101,105       # Exclude specific CTs, other defaults apply
+  $(basename "$0") -a -p 2 -y       # Include all CTs, 2 parallel jobs, no prompts
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --all) INCLUDE_ALL=true; INTERACTIVE=false; shift;;
-    --parallel) PARALLEL="${2:-1}"; INTERACTIVE=false; shift 2;;
-    --exclude) EXCLUDE="${2:-}"; INTERACTIVE=false; shift 2;;
-    --yes) ASSUME_YES=true; INTERACTIVE=false; shift;;
-    --dry-run) DRY_RUN=true; INTERACTIVE=false; shift;;
+    -a|--all) INCLUDE_ALL=true; INTERACTIVE=false; shift;;
+    -p|--parallel) PARALLEL="${2:-1}"; INTERACTIVE=false; shift 2;;
+    -e|--exclude) EXCLUDE="${2:-}"; INTERACTIVE=false; shift 2;;
+    -y|--yes) ASSUME_YES=true; INTERACTIVE=false; shift;;
+    -d|--dry-run) DRY_RUN=true; INTERACTIVE=false; shift;;
     -h|--help) usage; exit 0;;
     *) log_warn "Unknown arg: $1"; usage; exit 1;;
   esac
 done
+
+# === Apply defaults when parameters are used but specific options not explicitly set ===
+if [[ "$INTERACTIVE" == "false" ]]; then
+  # Only apply defaults if the values weren't explicitly set via command line
+  if [[ "$INCLUDE_ALL" == "false" ]] && ! [[ "$ORIGINAL_ARGS" =~ -a|--all ]]; then
+    INCLUDE_ALL="$DEFAULT_INCLUDE_ALL"
+  fi
+  if [[ "$PARALLEL" == "1" ]] && ! [[ "$ORIGINAL_ARGS" =~ -p|--parallel ]]; then
+    PARALLEL="$DEFAULT_PARALLEL"
+  fi
+  if [[ -z "$EXCLUDE" ]] && ! [[ "$ORIGINAL_ARGS" =~ -e|--exclude ]]; then
+    EXCLUDE="$DEFAULT_EXCLUDE"
+  fi
+  if [[ "$DRY_RUN" == "false" ]] && ! [[ "$ORIGINAL_ARGS" =~ -d|--dry-run ]]; then
+    DRY_RUN="$DEFAULT_DRY_RUN"
+  fi
+fi
 
 # === Interactive prompts if no arguments provided ===
 if [[ "$INTERACTIVE" == "true" ]]; then

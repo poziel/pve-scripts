@@ -11,6 +11,13 @@ CURRENT_HOSTNAME=$(hostname)
 COMMON_TOOLS=(curl wget nano vim git unzip htop net-tools gnupg lsb-release ca-certificates software-properties-common ufw vsftpd)
 SSHD_CONFIG="/etc/ssh/sshd_config"
 
+# === Default values when parameters are passed (configurable) ===
+DEFAULT_UPDATES="yes"       # "yes" or "no" - enable system updates by default
+DEFAULT_TOOLS="yes"         # "yes" or "no" - install essential tools by default
+DEFAULT_USER="yes"          # "yes" or "no" - create admin user by default
+DEFAULT_SSH="yes"           # "yes" or "no" - configure SSH by default
+DEFAULT_FTP="no"            # "yes" or "no" - configure FTP by default
+
 # === Command line options ===
 AUTO_HOSTNAME=""
 AUTO_UPDATES=""
@@ -31,46 +38,57 @@ DID_CONFIGURE_FTP=false
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [options]
-  --hostname NAME      Set hostname to NAME (skips prompt)
-  --updates            Enable system updates
-  --no-updates         Skip system updates
-  --tools              Install essential tools
-  --no-tools           Skip essential tools installation
-  --user               Create admin user
-  --no-user            Skip admin user creation
-  --ssh                Configure SSH
-  --no-ssh             Skip SSH configuration
-  --ftp                Configure FTP server
-  --no-ftp             Skip FTP server configuration
-  --yes                Answer yes to all interactive prompts (when no specific --no- flags)
-  --help               Show this help
+  -n, --hostname NAME  Set hostname to NAME (skips prompt)
+  -u, --no-updates     Skip system updates (default: enabled)
+  -t, --no-tools       Skip essential tools installation (default: enabled)
+  -U, --no-user        Skip admin user creation (default: enabled)
+  -s, --no-ssh         Skip SSH configuration (default: enabled)
+  -f, --ftp            Enable FTP server configuration (default: disabled)
+  -y, --yes            Enable all components (overrides other flags)
+  -h, --help           Show this help
+
+Behavior:
+  - NO PARAMETERS: Interactive mode - prompts for each step
+  - ANY PARAMETER: Uses defaults for unspecified options, arguments toggle opposite of defaults
+
+Current defaults when parameters are used:
+  - Updates: $DEFAULT_UPDATES (use -u/--no-updates to skip)
+  - Tools: $DEFAULT_TOOLS (use -t/--no-tools to skip)
+  - User: $DEFAULT_USER (use -U/--no-user to skip)
+  - SSH: $DEFAULT_SSH (use -s/--no-ssh to skip)  
+  - FTP: $DEFAULT_FTP (use -f/--ftp to enable)
 
 Examples:
-  $(basename "$0")                                    # Interactive mode (default)
-  $(basename "$0") --yes                             # Enable all components
-  $(basename "$0") --hostname myserver --ssh --ftp  # Set hostname and configure SSH + FTP only
-  $(basename "$0") --updates --no-user --no-ftp     # Updates and tools only
+  $(basename "$0")                     # Interactive mode (asks for each step)
+  $(basename "$0") -n myserver         # Set hostname, use all defaults
+  $(basename "$0") -t -U               # Skip tools and user creation
+  $(basename "$0") -f                  # Enable FTP, use other defaults
+  $(basename "$0") -n web1 -u -t -s    # Set hostname, skip updates/tools/SSH
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --hostname) AUTO_HOSTNAME="$2"; INTERACTIVE=false; shift 2;;
-    --updates) AUTO_UPDATES="yes"; INTERACTIVE=false; shift;;
-    --no-updates) AUTO_UPDATES="no"; INTERACTIVE=false; shift;;
-    --tools) AUTO_TOOLS="yes"; INTERACTIVE=false; shift;;
-    --no-tools) AUTO_TOOLS="no"; INTERACTIVE=false; shift;;
-    --user) AUTO_USER="yes"; INTERACTIVE=false; shift;;
-    --no-user) AUTO_USER="no"; INTERACTIVE=false; shift;;
-    --ssh) AUTO_SSH="yes"; INTERACTIVE=false; shift;;
-    --no-ssh) AUTO_SSH="no"; INTERACTIVE=false; shift;;
-    --ftp) AUTO_FTP="yes"; INTERACTIVE=false; shift;;
-    --no-ftp) AUTO_FTP="no"; INTERACTIVE=false; shift;;
-    --yes) AUTO_UPDATES="yes"; AUTO_TOOLS="yes"; AUTO_USER="yes"; AUTO_SSH="yes"; AUTO_FTP="yes"; INTERACTIVE=false; shift;;
-    --help|-h) usage; exit 0;;
+    -n|--hostname) AUTO_HOSTNAME="$2"; INTERACTIVE=false; shift 2;;
+    -u|--no-updates) AUTO_UPDATES="no"; INTERACTIVE=false; shift;;    # Toggle: default=yes, flag=no
+    -t|--no-tools) AUTO_TOOLS="no"; INTERACTIVE=false; shift;;        # Toggle: default=yes, flag=no
+    -U|--no-user) AUTO_USER="no"; INTERACTIVE=false; shift;;          # Toggle: default=yes, flag=no
+    -s|--no-ssh) AUTO_SSH="no"; INTERACTIVE=false; shift;;            # Toggle: default=yes, flag=no
+    -f|--ftp) AUTO_FTP="yes"; INTERACTIVE=false; shift;;              # Toggle: default=no, flag=yes
+    -y|--yes) AUTO_UPDATES="yes"; AUTO_TOOLS="yes"; AUTO_USER="yes"; AUTO_SSH="yes"; AUTO_FTP="yes"; INTERACTIVE=false; shift;;
+    -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 1;;
   esac
 done
+
+# === Apply defaults when parameters are used but specific options not set ===
+if [[ "$INTERACTIVE" == "false" ]]; then
+  [[ -z "$AUTO_UPDATES" ]] && AUTO_UPDATES="$DEFAULT_UPDATES"
+  [[ -z "$AUTO_TOOLS" ]] && AUTO_TOOLS="$DEFAULT_TOOLS"
+  [[ -z "$AUTO_USER" ]] && AUTO_USER="$DEFAULT_USER"
+  [[ -z "$AUTO_SSH" ]] && AUTO_SSH="$DEFAULT_SSH"
+  [[ -z "$AUTO_FTP" ]] && AUTO_FTP="$DEFAULT_FTP"
+fi
 
 # === Fetch and source shared.sh from GitHub ===
 if [ -f "./$SHARED_NAME" ]; then

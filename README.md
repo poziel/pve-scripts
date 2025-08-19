@@ -74,14 +74,14 @@ This script is sourced by other scripts in the collection to keep the UI consist
 # Bootstrap a Proxmox node (interactive mode)
 bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh)
 
-# Bootstrap with specific options
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --hostname myserver --ssh --ftp
+# Bootstrap with specific options (using defaults for others)
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) -n myserver -f
 
 # Update all LXC containers (interactive mode)
 bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh)
 
-# Update containers with options
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --all --parallel 3 --yes
+# Update containers with options (using defaults for others)
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -a -p 3 -y
 ```
 
 ---
@@ -111,13 +111,16 @@ chmod +x *.sh
 bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh)
 
 # Enable all components
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --yes
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) -y
 
-# Set hostname and configure SSH + FTP only
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --hostname myserver --ssh --ftp
+# Set hostname only, use defaults for others (updates, tools, user, SSH enabled; FTP disabled)
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) -n myserver
 
-# System updates and tools only (skip user creation and services)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --updates --tools --no-user --no-ssh --no-ftp
+# Set hostname and enable FTP, skip tools and user creation
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --hostname myserver --ftp --no-tools --no-user
+
+# Skip updates and SSH, enable FTP (using long arguments for clarity)
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --no-updates --no-ssh --ftp
 ```
 
 **Local execution (if cloned):**
@@ -126,18 +129,23 @@ bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/boots
 sudo ./bootstrap.sh
 
 # Command-line mode with options
-sudo ./bootstrap.sh --hostname webserver --updates --ssh --no-tools --no-ftp
+sudo ./bootstrap.sh -n webserver -u -s
 ```
 
 **Available options:**
-- `--hostname NAME`: Set hostname to NAME (skips prompt)
-- `--updates` / `--no-updates`: Enable/skip system updates
-- `--tools` / `--no-tools`: Install/skip essential tools
-- `--user` / `--no-user`: Create/skip admin user creation
-- `--ssh` / `--no-ssh`: Configure/skip SSH setup
-- `--ftp` / `--no-ftp`: Configure/skip FTP server
-- `--yes`: Enable all components (equivalent to all --enable flags)
-- `--help`: Show usage information
+- `-n, --hostname NAME`: Set hostname to NAME (skips prompt)
+- `-u, --no-updates`: Skip system updates (default: enabled)
+- `-t, --no-tools`: Skip essential tools installation (default: enabled)
+- `-U, --no-user`: Skip admin user creation (default: enabled)
+- `-s, --no-ssh`: Skip SSH configuration (default: enabled)
+- `-f, --ftp`: Enable FTP server configuration (default: disabled)
+- `-y, --yes`: Enable all components (overrides other flags)
+- `-h, --help`: Show usage information
+
+**Behavior:**
+- **No parameters**: Interactive mode - prompts for each step
+- **Any parameter**: Uses default values for unspecified options
+- **Arguments toggle opposite of defaults**: If default is enabled, the flag disables it; if default is disabled, the flag enables it
 
 ### Update all LXC containers:
 
@@ -146,23 +154,23 @@ sudo ./bootstrap.sh --hostname webserver --updates --ssh --no-tools --no-ftp
 # Interactive mode - prompts for update options
 bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh)
 
-# Update all running containers (sequential)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --yes
+# Update all running containers (use defaults)
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -y
 
 # Update all containers including stopped ones
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --all --yes
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -a -y
 
 # Run 3 updates in parallel for faster execution
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --parallel 3 --yes
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -p 3 -y
 
 # Exclude specific containers (e.g., production containers)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --exclude 101,105,200 --yes
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -e 101,105,200 -y
 
 # See what would be updated without making changes
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --dry-run
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -d
 
 # Combine options
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) --all --parallel 2 --exclude 101 --yes
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -a -p 2 -e 101 -y
 ```
 
 **Local execution (if cloned):**
@@ -171,16 +179,20 @@ bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-up
 sudo ./ct-update-all.sh
 
 # Command-line mode
-sudo ./ct-update-all.sh --all --parallel 3 --yes
+sudo ./ct-update-all.sh -a -p 3 -y
 ```
 
 **Available options:**
-- `--all`: Include stopped containers (skipped if not running during execution)
-- `--parallel N`: Run up to N updates in parallel (default: 1)
-- `--exclude LIST`: Comma-separated CTIDs to exclude
-- `--yes`: Skip confirmation prompt
-- `--dry-run`: Show what would be executed without running
-- `--help`: Show usage information
+- `-a, --all`: Include stopped containers (default: false)
+- `-p, --parallel N`: Run up to N updates in parallel (default: 1)
+- `-e, --exclude LIST`: Comma-separated CTIDs to exclude (default: none)
+- `-y, --yes`: Skip confirmation prompt
+- `-d, --dry-run`: Show what would be executed without running (default: false)
+- `-h, --help`: Show usage information
+
+**Behavior:**
+- **No parameters**: Interactive mode - prompts for each option
+- **Any parameter**: Uses default values for unspecified options
 
 **Container update process:**
 1. Detects the Linux distribution in each container
@@ -190,8 +202,8 @@ sudo ./ct-update-all.sh --all --parallel 3 --yes
 
 **Usage modes:**
 - **Interactive**: Run without arguments to be prompted for each option
-- **Command-line**: Specify arguments for automated/scripted execution
-- **Mixed**: Combine both - specify some arguments and be prompted for others
+- **Automatic**: Specify arguments to use defaults for unspecified options
+- **Simplified**: Only specify the options you want to enable (no `--no-*` flags needed)
 
 ---
 
