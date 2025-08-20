@@ -1,59 +1,150 @@
-# PVE Scripts – Proxmox Automation & Setup Tools ⚙️🖥️
+# PVE Scripts – Proxmox Container Management Tools ⚙️🖥️
 
-**PVE Scripts** is a collection of **ready-to-use Bash scripts** that simplify **Proxmox Virtual Environment (PVE)** management by automating essential setup and provisioning tasks.  
-These scripts are actively used to prepare new Proxmox nodes, configure core services, and ensure your environment is ready for production.
+**PVE Scripts** is a collection of **ready-to-use Bash scripts** that simplify **Proxmox Virtual Environment (PVE)** LXC container managem## 📌 Roadmap
 
----
+Planned future scripts include:
+- **Additional container scripts** for specialized tasks (monitoring, backups, etc.)
+- **Multi-node command executor** — run commands across Proxmox cluster nodes
+- **Node IP fetcher** — gather and distribute all nodes' IP addresses
+- **Cluster-wide configuration sync** — keep settings consistent across all nodes
+- **Template-based container provisioning** — standardized container deployments
 
-## 📂 Included Scripts
-
-### `bootstrap.sh` – Node Initialization Script
-Automates the first-time setup of a Proxmox node or container by:
-- **Setting the hostname** and updating `/etc/hosts`.
-- **Updating the system** (`apt update`, `upgrade`, cleanup).
-- **Installing essential tools**:
-  - `curl`, `wget`, `nano`, `vim`, `git`, `unzip`, `htop`, `net-tools`, `gnupg`, `lsb-release`, `ca-certificates`, `software-properties-common`, `ufw`, `vsftpd`.
-- **Creating an admin user** with sudo access and a randomly generated password.
-- **Configuring SSH**:
-  - Disables root login.
-  - Enables password authentication.
-  - Installs and starts OpenSSH if missing.
-- **Configuring FTP (vsftpd)**:
-  - Enables write access.
-  - Restricts users to their home directory.
-  - Sets up FTP root for the admin user.
-- **Final summary** showing configured hostname, user credentials path, and connection details.
-
-> The script is **interactive** and asks for confirmation before each major step, allowing you to skip components you don't need.
+**Current Status:**
+- ✅ **Modular architecture implemented** with separated host/container scripts
+- ✅ **Universal script executor** for running any container operation
+- ✅ **Clean, focused codebase** with removed legacy scripts
+- ✅ **Streamlined workflow** for container managementth a modern **modular architecture**.  
+These scripts automate container configuration, updates, and maintenance tasks at scale.
 
 ---
 
-### `ct-update-all.sh` – LXC Container Mass Update Script
-Updates packages across all LXC containers on a Proxmox node with support for multiple distributions:
-- **Multi-distro support**: Debian/Ubuntu (apt), RHEL/Fedora (dnf), Alpine (apk), Arch (pacman)
-- **Flexible execution**: Update running containers only or include stopped ones
-- **Parallel processing**: Run multiple updates simultaneously for faster execution
-- **Container exclusion**: Skip specific containers by CTID
+## 📂 Script Collection
+
+### **Host Scripts** (Run on Proxmox Host)
+
+#### `ct-executor.sh` – **Universal Container Script Executor**
+The **core orchestrator** that executes any script from `ct-scripts/` across multiple LXC containers:
+- **Universal execution**: Run any CT script across containers
+- **Flexible targeting**: Include/exclude specific containers
+- **Parallel processing**: Execute on multiple containers simultaneously
+- **Smart copying**: Automatically copies scripts into containers and executes them
 - **Safety features**: Dry-run mode and confirmation prompts
 - **Comprehensive reporting**: Success, skipped, and failed container counts
 
-**Supported options:**
-- `--all`: Include stopped containers (skipped if not running during execution)
-- `--parallel N`: Run up to N updates in parallel (default: 1)
-- `--exclude CTID,CTID`: Exclude specific container IDs
-- `--yes`: Skip confirmation prompt
-- `--dry-run`: Show what would be executed without running
+### **Container Scripts** (`ct-scripts/` directory)
+*These scripts run INSIDE containers, not on the Proxmox host*
+
+#### `ct-update.sh` – Single Container Package Update
+Updates packages in the current container with multi-distro support:
+- **Multi-distro support**: Debian/Ubuntu (apt), RHEL/Fedora (dnf), Alpine (apk), Arch (pacman)
+- **Auto-detection**: Automatically detects the Linux distribution
+- **Comprehensive updates**: Full system update, upgrade, and cleanup
+- **Verbose/Silent modes**: `--verbose` for detailed output, `--silent` for no output
+
+#### `ct-bootstrap.sh` – Single Container Bootstrap
+Configures a container from the inside with:
+- **Hostname configuration** and `/etc/hosts` updates
+- **System updates** (uses `ct-update.sh` internally)
+- **Essential tools installation** (uses `ct-tools.sh` internally)
+- **Admin user creation** with sudo access
+- **SSH server configuration**
+- **FTP server setup** (optional)
+- **Verbose/Silent modes**: `--verbose` for detailed output, `--silent` for no output
+
+#### `ct-tools.sh` – Essential Tools Installation
+Installs a comprehensive set of development and system tools:
+- **Predefined tool list**: curl, wget, nano, vim, git, unzip, htop, net-tools, etc.
+- **Multi-distro support**: Works across different Linux distributions
+- **Direct installation**: Installs tools immediately when script runs (no confirmation needed)
+- **Tool listing**: `--list` to show what will be installed
+- **Verbose/Silent modes**: `--verbose` for detailed output, `--silent` for no output
+
+#### `ct-info.sh` – Container Network Information
+Displays container hostname and IP information:
+- **IP detection**: Multiple fallback methods for reliable IP retrieval
+- **Multiple formats**: Basic, verbose, and JSON output modes
+- **Network interface**: Comprehensive network information display
+- **Flexible output**: Suitable for both interactive use and automation
+- **Verbose/Silent modes**: `--verbose` for detailed output, `--silent` for no output
+
+#### `ct-test.sh` – Container System Test
+Simple test script to verify container functionality:
+- **System information** gathering
+- **Package manager detection**
+- **Network connectivity testing**
+- **Resource usage reporting**
+- **Verbose/Silent modes**: `--verbose` for detailed output, `--silent` for no output
+
+#### `shared.sh` – LEGACY: Original Shared Functions (DEPRECATED)
+This file is now **deprecated** in favor of the new modular library system.  
+**Use `lib/core.sh` and `use_lib()` instead** for new scripts.
 
 ---
 
-### `shared.sh` – Utility Functions & UI
-A shared library providing:
-- **Color-coded logging** (`log_step`, `log_success`, `log_warn`, `fatal_error`).
-- **Pretty ASCII banner** for script intros.
-- **Dynamic line breaks** for formatting.
-- **User confirmation prompts** (`ask_to_proceed`).
+## 🏗️ Modular Library System
 
-This script is sourced by other scripts in the collection to keep the UI consistent.
+The **new modular architecture** features a **core library** system with dynamic loading:
+
+### **Core Library (`lib/core.sh`)**
+The foundation library that every script loads first:
+- **Essential logging functions**: `log_info`, `log_success`, `log_warning`, `log_error`, `fatal_error`
+- **Utility functions**: `command_exists`, basic system checks
+- **Dynamic library loader**: `use_lib()` function for on-demand module loading
+- **Smart loading**: Handles local and remote library loading with fallbacks
+- **Duplicate prevention**: Tracks loaded libraries to prevent re-loading
+
+### **Focused Library Modules**
+- **lib/ui.sh**: User interface, colors, banners, and interactive prompts
+- **lib/system.sh**: OS detection, system info, and performance monitoring  
+- **lib/packages.sh**: Multi-distro package management functions
+- **lib/network.sh**: IP detection, connectivity testing
+- **lib/validation.sh**: Input validation and utility checks
+- **lib/files.sh**: File operations and cleanup functions
+
+### **Usage Pattern**
+```bash
+# Load core library first (contains use_lib function)
+source "lib/core.sh" || source <(wget -qO- "$CORE_LIB_URL")
+
+# Load additional modules as needed
+use_lib "ui"         # For banners and prompts
+use_lib "system"     # For OS detection
+use_lib "network"    # For IP functions
+```
+
+```
+📁 pve-scripts/
+├── 🖥️ Host Scripts (run on Proxmox)
+│   ├── ct-executor.sh        # Universal container orchestrator
+│   ├── ct-update-all.sh      # Bulk container updates
+│   └── bootstrap.sh          # Host-side bootstrapping
+├── 📦 ct-scripts/ (run inside containers)
+│   ├── ct-update.sh          # Package updates
+│   ├── ct-bootstrap.sh       # Container setup
+│   ├── ct-tools.sh           # Essential tools installation
+│   ├── ct-info.sh            # Network information
+│   └── ct-test.sh            # System testing
+├── 📚 lib/ (modular shared libraries)
+│   ├── core.sh               # 🔥 Core library with use_lib() loader
+│   ├── ui.sh                 # UI, logging, and colors
+│   ├── system.sh             # System detection and info
+│   ├── packages.sh           # Package management
+│   ├── network.sh            # Network utilities
+│   ├── validation.sh         # Validation functions
+│   └── files.sh              # File operations
+└── shared.sh                 # 🚫 DEPRECATED - use lib/core.sh instead
+```
+└── 📖 README.md & LICENSE
+```
+
+**Benefits:**
+- **Modularity**: Each script and library module has a single responsibility
+- **Reusability**: Container scripts can be used independently
+- **Scalability**: Easy to add new container operations and library functions
+- **Maintainability**: Clear separation between host/container logic and focused library modules
+- **Flexibility**: Mix and match operations as needed
+- **Reliability**: Strict dependency checking prevents runtime failures
+- **Organization**: Shared functionality split into logical, manageable modules
 
 ---
 
@@ -70,18 +161,51 @@ This script is sourced by other scripts in the collection to keep the UI consist
 
 **Execute directly from GitHub** - no cloning required:
 
+### Host Operations (run on Proxmox host)
+
 ```bash
-# Bootstrap a Proxmox node (interactive mode)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh)
+# Update all LXC containers using the modular approach
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh -y
 
-# Bootstrap with specific options (using defaults for others)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) -n myserver -f
+# Bootstrap all containers with custom hostname pattern
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-bootstrap.sh -n web -p 3 -y
 
-# Update all LXC containers (interactive mode)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh)
+# Test all containers
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-test.sh -y
 
-# Update containers with options (using defaults for others)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -a -p 3 -y
+# Install essential tools on all containers
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-tools.sh -y
+
+# Get network information from all containers
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-info.sh -y
+
+# Execute with verbose output
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh --verbose -y
+
+# Execute in silent mode
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-bootstrap.sh --silent -y
+
+# Execute any CT script with options
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh -p 2 -e 101,105 -y
+```
+
+### Container Operations (run inside containers)
+
+```bash
+# Update packages in current container
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-scripts/ct-update.sh)
+
+# Bootstrap current container
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-scripts/ct-bootstrap.sh) -n mycontainer -y
+
+# Install essential tools in current container
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-scripts/ct-tools.sh)
+
+# Test current container
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-scripts/ct-test.sh)
+
+# Get network information for current container
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-scripts/ct-info.sh)
 ```
 
 ---
@@ -96,114 +220,76 @@ git clone https://github.com/poziel/pve-scripts.git
 cd pve-scripts
 
 # Make scripts executable
-chmod +x *.sh
+chmod +x ct-executor.sh ct-scripts/*.sh
 ```
 
 ---
 
 ## 📖 Usage
 
-### Bootstrap a new Proxmox node:
+### Container Script Execution (Recommended)
+
+The **modular approach** using `ct-executor.sh` is the primary way to manage containers:
 
 **Direct execution from GitHub (recommended):**
 ```bash
-# Interactive mode - prompts for each option
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh)
+# Interactive mode - prompts for execution options
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh
 
-# Enable all components
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) -y
+# Update all running containers
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh -y
 
-# Set hostname only, use defaults for others (updates, tools, user, SSH enabled; FTP disabled)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) -n myserver
+# Update specific containers only
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh -i 101,105,200 -y
 
-# Set hostname and enable FTP, skip tools and user creation
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --hostname myserver --ftp --no-tools --no-user
+# Update all containers including stopped ones (in parallel)
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh -a -p 3 -y
 
-# Skip updates and SSH, enable FTP (using long arguments for clarity)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/bootstrap.sh) --no-updates --no-ssh --ftp
-```
+# Bootstrap all containers with custom settings
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-bootstrap.sh -n web -t -U -p 2 -y
 
-**Local execution (if cloned):**
-```bash
-# Interactive mode (default)
-sudo ./bootstrap.sh
+# Install tools on specific containers with verbose output
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-tools.sh -i 101,105 --verbose -y
 
-# Command-line mode with options
-sudo ./bootstrap.sh -n webserver -u -s
-```
+# Test all containers
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-test.sh -y
 
-**Available options:**
-- `-n, --hostname NAME`: Set hostname to NAME (skips prompt)
-- `-u, --no-updates`: Skip system updates (default: enabled)
-- `-t, --no-tools`: Skip essential tools installation (default: enabled)
-- `-U, --no-user`: Skip admin user creation (default: enabled)
-- `-s, --no-ssh`: Skip SSH configuration (default: enabled)
-- `-f, --ftp`: Enable FTP server configuration (default: disabled)
-- `-y, --yes`: Enable all components (overrides other flags)
-- `-h, --help`: Show usage information
+# Get network information from all containers
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-info.sh -y
 
-**Behavior:**
-- **No parameters**: Interactive mode - prompts for each step
-- **Any parameter**: Uses default values for unspecified options
-- **Arguments toggle opposite of defaults**: If default is enabled, the flag disables it; if default is disabled, the flag enables it
+# Exclude specific containers from operations
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-bootstrap.sh -e 101,105 -y
 
-### Update all LXC containers:
-
-**Direct execution from GitHub (recommended):**
-```bash
-# Interactive mode - prompts for update options
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh)
-
-# Update all running containers (use defaults)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -y
-
-# Update all containers including stopped ones
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -a -y
-
-# Run 3 updates in parallel for faster execution
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -p 3 -y
-
-# Exclude specific containers (e.g., production containers)
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -e 101,105,200 -y
-
-# See what would be updated without making changes
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -d
-
-# Combine options
-bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-update-all.sh) -a -p 2 -e 101 -y
+# See what would be executed without making changes
+bash <(wget -qO- https://raw.githubusercontent.com/poziel/pve-scripts/main/ct-executor.sh) ct-update.sh -d
 ```
 
 **Local execution (if cloned):**
 ```bash
 # Interactive mode
-sudo ./ct-update-all.sh
+sudo ./ct-executor.sh ct-update.sh
 
 # Command-line mode
-sudo ./ct-update-all.sh -a -p 3 -y
+sudo ./ct-executor.sh ct-bootstrap.sh -n webserver -p 3 -y
 ```
 
-**Available options:**
+**ct-executor.sh options:**
+- `SCRIPT_NAME`: Required - script from ct-scripts/ to execute (e.g., ct-update.sh)
+- `[script_args...]`: Arguments to pass to the script
 - `-a, --all`: Include stopped containers (default: false)
-- `-p, --parallel N`: Run up to N updates in parallel (default: 1)
-- `-e, --exclude LIST`: Comma-separated CTIDs to exclude (default: none)
+- `-p, --parallel N`: Run up to N containers in parallel (default: 1)
+- `-e, --exclude LIST`: Comma-separated CTIDs to exclude
+- `-i, --include LIST`: Comma-separated CTIDs to include only
 - `-y, --yes`: Skip confirmation prompt
-- `-d, --dry-run`: Show what would be executed without running (default: false)
+- `-d, --dry-run`: Show what would be executed without running
 - `-h, --help`: Show usage information
 
-**Behavior:**
-- **No parameters**: Interactive mode - prompts for each option
-- **Any parameter**: Uses default values for unspecified options
-
-**Container update process:**
-1. Detects the Linux distribution in each container
-2. Uses the appropriate package manager (apt, dnf, apk, or pacman)
-3. Performs full system update, upgrade, and cleanup
-4. Provides detailed progress and final summary
-
-**Usage modes:**
-- **Interactive**: Run without arguments to be prompted for each option
-- **Automatic**: Specify arguments to use defaults for unspecified options
-- **Simplified**: Only specify the options you want to enable (no `--no-*` flags needed)
+**Container script arguments:**
+- **ct-update.sh**: `--dry-run` (show what would be updated), `--verbose` (detailed output), `--silent` (no output)
+- **ct-bootstrap.sh**: `-n hostname`, `-u` (no updates), `-t` (no tools), `-U` (no user), `-s` (no SSH), `-f` (enable FTP), `-y` (yes to all), `--verbose` (detailed output), `--silent` (no output)
+- **ct-tools.sh**: `--list` (show tools list), `--verbose` (detailed output), `--silent` (no output)
+- **ct-info.sh**: `-v` (verbose), `-j` (JSON format), `--verbose` (detailed output), `--silent` (no output)
+- **ct-test.sh**: `--verbose` (detailed test information), `--silent` (no output)
 
 ---
 
