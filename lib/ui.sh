@@ -62,7 +62,6 @@ ask_to_proceed() {
   if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
     return 0  # Yes
   else
-    log_warn "Skipped $step_name setup."
     return 1  # No
   fi
 }

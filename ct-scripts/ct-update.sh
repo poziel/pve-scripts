@@ -115,7 +115,7 @@ update_container() {
   
   case "$pkg_mgr" in
     apt)
-      cmd+='apt update -y && apt full-upgrade -y && apt autoremove -y && apt clean -y && apt autoclean -y'
+      cmd+='apt-get update -y && apt-get full-upgrade -y && apt-get autoremove -y && apt-get clean -y && apt-get autoclean -y'
       ;;
     dnf)
       cmd+='dnf -y upgrade --refresh && dnf -y autoremove && dnf clean all'
@@ -138,15 +138,25 @@ update_container() {
   safe_log log_step "${header}: starting updates..."
   if [[ "$VERBOSE" == "true" ]]; then
     safe_echo "  Executing command: $cmd"
-  fi
-  
-  if bash -c "${cmd}"; then
-    safe_log log_success "${header}: update complete"
-    return 0
+    # Show all output in verbose mode
+    if bash -c "${cmd}"; then
+      safe_log log_success "${header}: update complete"
+      return 0
+    else
+      safe_echo ""
+      safe_log log_warn "${header}: update failed"
+      return 2
+    fi
   else
-    safe_echo ""
-    safe_log log_warn "${header}: update failed"
-    return 2
+    # Hide output in normal mode
+    if bash -c "${cmd}" >/dev/null 2>&1; then
+      safe_log log_success "${header}: update complete"
+      return 0
+    else
+      safe_echo ""
+      safe_log log_warn "${header}: update failed"
+      return 2
+    fi
   fi
 }
 

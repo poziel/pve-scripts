@@ -1,6 +1,8 @@
 # PVE Scripts – Proxmox Container Management Tools ⚙️🖥️
 
-**PVE Scripts** is a collection of **ready-to-use Bash scripts** that simplify **Proxmox Virtual Environment (PVE)** LXC container managem## 📌 Roadmap
+**PVE Scripts** is a collection of **ready-to-use Bash scripts** that simplify **Proxmox Virtual Environment (PVE)** LXC container management.
+
+# 📌 Roadmap
 
 Planned future scripts include:
 - **Additional container scripts** for specialized tasks (monitoring, backups, etc.)
@@ -133,7 +135,6 @@ use_lib "network"    # For IP functions
 │   ├── validation.sh         # Validation functions
 │   └── files.sh              # File operations
 └── shared.sh                 # 🚫 DEPRECATED - use lib/core.sh instead
-```
 └── 📖 README.md & LICENSE
 ```
 

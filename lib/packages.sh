@@ -23,7 +23,7 @@ is_package_installed() {
 }
 
 # Install a package using the appropriate package manager
-# Installs silently (output redirected to /dev/null) and shows installation message
+# Installs silently unless VERBOSE is true, respects VERBOSE environment variable
 # Exits with fatal_error if package manager is unsupported
 # Arguments:
 #   $1 - Package name to install
@@ -35,16 +35,32 @@ install_package() {
   case "$pkg_mgr" in
     apt)
       export DEBIAN_FRONTEND=noninteractive
-      apt install -y "$package" > /dev/null
+      if [[ "${VERBOSE:-false}" == "true" ]]; then
+        apt-get install -y "$package"
+      else
+        apt-get install -y "$package" >/dev/null 2>&1
+      fi
       ;;
     dnf)
-      dnf install -y "$package" > /dev/null
+      if [[ "${VERBOSE:-false}" == "true" ]]; then
+        dnf install -y "$package"
+      else
+        dnf install -y "$package" >/dev/null 2>&1
+      fi
       ;;
     apk)
-      apk add "$package" > /dev/null
+      if [[ "${VERBOSE:-false}" == "true" ]]; then
+        apk add "$package"
+      else
+        apk add "$package" >/dev/null 2>&1
+      fi
       ;;
     pacman)
-      pacman -S --noconfirm "$package" > /dev/null
+      if [[ "${VERBOSE:-false}" == "true" ]]; then
+        pacman -S --noconfirm "$package"
+      else
+        pacman -S --noconfirm "$package" >/dev/null 2>&1
+      fi
       ;;
     *)
       fatal_error "Unsupported package manager for installing $package"

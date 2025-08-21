@@ -18,7 +18,7 @@ SSHD_CONFIG="/etc/ssh/sshd_config"
 # === Default values when parameters are passed (configurable) ===
 DEFAULT_UPDATES="yes"       # "yes" or "no" - enable system updates by default
 DEFAULT_TOOLS="yes"         # "yes" or "no" - install essential tools by default
-DEFAULT_USER="yes"          # "yes" or "no" - create admin user by default
+DEFAULT_USER="no"          # "yes" or "no" - create admin user by default
 DEFAULT_SSH="yes"           # "yes" or "no" - configure SSH by default
 DEFAULT_FTP="no"            # "yes" or "no" - configure FTP by default
 
@@ -241,7 +241,16 @@ bootstrap_updates() {
     
     if [[ "$update_downloaded" == "true" ]]; then
       chmod +x /tmp/ct-update.sh
-      if /tmp/ct-update.sh --multiple; then
+      
+      # Build arguments to pass to ct-update.sh
+      local update_args="--multiple"
+      if [[ "$VERBOSE" == "true" ]]; then
+        update_args="$update_args --verbose"
+      elif [[ "$SILENT" == "true" ]]; then
+        update_args="$update_args --silent"
+      fi
+      
+      if /tmp/ct-update.sh $update_args; then
         log_success "System updated successfully."
       else
         fatal_error "System update failed"
@@ -285,7 +294,16 @@ bootstrap_tools() {
     
     if [[ "$tools_downloaded" == "true" ]]; then
       chmod +x /tmp/ct-tools.sh
-      if /tmp/ct-tools.sh --multiple; then
+      
+      # Build arguments to pass to ct-tools.sh
+      local tools_args="--multiple"
+      if [[ "$VERBOSE" == "true" ]]; then
+        tools_args="$tools_args --verbose"
+      elif [[ "$SILENT" == "true" ]]; then
+        tools_args="$tools_args --silent"
+      fi
+      
+      if /tmp/ct-tools.sh $tools_args; then
         DID_INSTALL_TOOLS=true
         log_success "Essential tools installed successfully."
       else
@@ -355,9 +373,15 @@ bootstrap_ssh() {
   if [[ "$proceed" == "true" ]]; then
     # Install SSH server if missing
     if ! dpkg -s openssh-server >/dev/null 2>&1; then
-      echo "📦  Installing OpenSSH server..."
+      if [[ "$VERBOSE" == "true" ]]; then
+        safe_echo "📦  Installing OpenSSH server..."
+      fi
       export DEBIAN_FRONTEND=noninteractive
-      apt install -y openssh-server > /dev/null 2>&1
+      if [[ "$VERBOSE" == "true" ]]; then
+        apt-get install -y openssh-server
+      else
+        apt-get install -y openssh-server >/dev/null 2>&1
+      fi
     fi
 
     # Configure SSH permissions
@@ -403,17 +427,46 @@ bootstrap_ftp() {
   fi
 
   if [[ "$proceed" == "true" ]]; then
-    echo "🌐  Configuring FTP with vsftpd..."
-    cp /etc/vsftpd.conf /etc/vsftpd.conf.bak
+    safe_log log_step "🌐" "Installing and configuring FTP with vsftpd..."
+    
+    # Install vsftpd if not already installed
+    if ! dpkg -s vsftpd >/dev/null 2>&1; then
+      if [[ "$VERBOSE" == "true" ]]; then
+        safe_echo "📦  Installing vsftpd package..."
+      fi
+      export DEBIAN_FRONTEND=noninteractive
+      if [[ "$VERBOSE" == "true" ]]; then
+        apt-get update -qq
+        apt-get install -y vsftpd
+      else
+        apt-get update -qq >/dev/null 2>&1
+        apt-get install -y vsftpd >/dev/null 2>&1
+      fi
+    fi
+    
+    if [[ "$VERBOSE" == "true" ]]; then
+      safe_echo "🔧  Configuring vsftpd..."
+    fi
+    
+    # Backup original config if it exists
+    if [[ -f /etc/vsftpd.conf ]]; then
+      cp /etc/vsftpd.conf /etc/vsftpd.conf.bak
+    fi
+    
+    # Configure vsftpd
     sed -i 's/^#write_enable=YES/write_enable=YES/' /etc/vsftpd.conf
     sed -i 's/^#local_umask=022/local_umask=022/' /etc/vsftpd.conf
     sed -i 's/^#chroot_local_user=YES/chroot_local_user=YES/' /etc/vsftpd.conf
     echo "user_sub_token=$USERNAME" >> /etc/vsftpd.conf
     echo "local_root=/home/$USERNAME" >> /etc/vsftpd.conf
-    systemctl enable vsftpd
+    
+    if [[ "$VERBOSE" == "true" ]]; then
+      safe_echo "🚀  Starting vsftpd service..."
+    fi
+    systemctl enable vsftpd > /dev/null 2>&1
     systemctl restart vsftpd
     DID_CONFIGURE_FTP=true
-    log_success "FTP server configured and started."
+    safe_log log_success "FTP server configured and started."
   else
     log_step "⏭️" "Skipping FTP server configuration."
   fi
