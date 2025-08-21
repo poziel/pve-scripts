@@ -218,7 +218,7 @@ bootstrap_updates() {
     proceed=true
   elif [[ "$AUTO_UPDATES" == "no" ]]; then
     proceed=false
-  elif ask_to_proceed "system updates" "${DEFAULT_UPDATES:0:1^^}"; then
+  elif ask_to_proceed "system updates" "${DEFAULT_UPDATES:0:1}"; then
     proceed=true
   fi
 
@@ -271,7 +271,7 @@ bootstrap_tools() {
     proceed=true
   elif [[ "$AUTO_TOOLS" == "no" ]]; then
     proceed=false
-  elif ask_to_proceed "the essential tools installation" "${DEFAULT_TOOLS:0:1^^}"; then
+  elif ask_to_proceed "the essential tools installation" "${DEFAULT_TOOLS:0:1}"; then
     proceed=true
   fi
 
@@ -330,7 +330,7 @@ bootstrap_user() {
     proceed=true
   elif [[ "$AUTO_USER" == "no" ]]; then
     proceed=false
-  elif ask_to_proceed "admin user creation" "${DEFAULT_USER:0:1^^}"; then
+  elif ask_to_proceed "admin user creation" "${DEFAULT_USER:0:1}"; then
     proceed=true
   fi
 
@@ -366,7 +366,7 @@ bootstrap_ssh() {
     proceed=true
   elif [[ "$AUTO_SSH" == "no" ]]; then
     proceed=false
-  elif ask_to_proceed "SSH configuration" "${DEFAULT_SSH:0:1^^}"; then
+  elif ask_to_proceed "SSH configuration" "${DEFAULT_SSH:0:1}"; then
     proceed=true
   fi
 
@@ -422,7 +422,7 @@ bootstrap_ftp() {
     proceed=true
   elif [[ "$AUTO_FTP" == "no" ]]; then
     proceed=false
-  elif ask_to_proceed "FTP server configuration" "${DEFAULT_FTP:0:1^^}"; then
+  elif ask_to_proceed "FTP server configuration" "${DEFAULT_FTP:0:1}"; then
     proceed=true
   fi
 
