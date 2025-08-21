@@ -51,14 +51,29 @@ $underline
 # === Interactive functions ===
 
 # Ask user if they want to proceed with a specific configuration step
-# Returns: 0 if user confirms (y/Y), 1 if user declines or no response
-# Displays a warning message if user skips the step
+# Returns: 0 if user confirms (y/Y), 1 if user declines (n/N) or no response
 # Arguments:
-#   $1 - Name of the configuration step
-# Example: ask_to_proceed "SSH configuration"
+#   $1 - Name of the configuration step (string)
+#   $2 - Default answer (optional, "Y" or "N", defaults to "N")
+# Example: ask_to_proceed "SSH configuration" "Y"
+#   - If default is "Y", prompt is [Y/n] and Enter means Yes
+#   - If default is "N", prompt is [y/N] and Enter means No
 ask_to_proceed() {
   local step_name="$1"
-  read -rp "❓  Do you want to configure $step_name? [y/N]: " CONFIRM
+  local default="${2:-N}"
+  # Ensure default is always Y or N (case-insensitive)
+  if [[ ! "$default" =~ ^[YyNn]$ ]]; then
+    default="N"
+  fi
+  local prompt="[y/N]"
+  if [[ "$default" =~ ^[Yy]$ ]]; then
+    prompt="[Y/n]"
+  fi
+  read -rp "❓  Do you want to configure $step_name? $prompt: " CONFIRM
+  # Use default if no response
+  if [[ -z "$CONFIRM" ]]; then
+    CONFIRM="$default"
+  fi
   if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
     return 0  # Yes
   else
